@@ -120,3 +120,15 @@ class TestTTSRehydration:
         assert r.status_code == 200, f"TTS status={r.status_code} body={r.text[:200]}"
         assert r.headers.get("content-type", "").startswith("audio/")
         assert len(r.content) > 1000
+
+
+# ------------------- mini lessons are Premium-only -------------------
+class TestLessonsPremiumOnly:
+    def test_free_user_never_gets_lessons(self, api, uid):
+        api.post(f"{BASE_URL}/api/user/premium", json={"user_id": uid, "active": False})
+        api.post(f"{BASE_URL}/api/user/content-modes",
+                 json={"user_id": uid, "modes": ["lessons"]})
+        for _ in range(6):
+            r = api.get(f"{BASE_URL}/api/discover-next", params={"user_id": uid})
+            assert r.status_code == 200, r.text
+            assert r.json().get("kind") == "story", "free reader received a lesson"

@@ -16,13 +16,15 @@ import { ONB } from "./onboarding-palette";
 type Props = {
   categories: Category[]; selected: Set<string>; modes: Set<StoryKind>;
   onToggleCategory: (id: string) => void; onToggleMode: (mode: StoryKind) => void;
+  /** Formati bloccati (es. mini lezioni per l'utente base): pillola con lucchetto, il tocco apre il paywall. */
+  lockedModes?: Set<StoryKind>;
   testID: string; modeIdPrefix?: string; disabled?: boolean; staggerIn?: boolean;
   titleAccessory?: ReactNode; status?: ReactNode; columns?: number;
   /** Schermo intero senza scorrimento: spaziature compatte e griglia adattata all'altezza rimasta. */
   fit?: boolean;
 };
 
-export function TopicPicker({ categories, selected, modes, onToggleCategory, onToggleMode,
+export function TopicPicker({ categories, selected, modes, onToggleCategory, onToggleMode, lockedModes,
   testID, modeIdPrefix = "onboarding", disabled = false, staggerIn = false, titleAccessory, status, columns, fit = false }: Props) {
   const { t } = useI18n();
   const formats = modes.size === 2 ? t.onb_formats_both : modes.has("lessons") ? t.onb_formats_lessons : t.onb_formats_stories;
@@ -35,7 +37,7 @@ export function TopicPicker({ categories, selected, modes, onToggleCategory, onT
   const gap = fit ? styles.gapFit : styles.gap;
   return (
     <View style={[styles.content, fit && styles.contentFit]} testID={`${testID}-picker`}>
-      <ModeChips modes={modes} onToggle={onToggleMode} disabled={disabled} idPrefix={modeIdPrefix} style={gap} />
+      <ModeChips modes={modes} onToggle={onToggleMode} disabled={disabled} idPrefix={modeIdPrefix} style={gap} locked={lockedModes} />
       <View style={[styles.titleRow, gap]}>
         <View style={styles.titleBox} onLayout={(e) => setTitleW(Math.floor(e.nativeEvent.layout.width))}>
           <Text style={[styles.title, { fontSize: titleSize, lineHeight: Math.round(titleSize * 1.25) }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7} testID={`${testID}-title`}>{t.onb_title}</Text>

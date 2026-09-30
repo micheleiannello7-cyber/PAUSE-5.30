@@ -3,7 +3,7 @@ import { View, Text, ScrollView, ActivityIndicator, Pressable } from "react-nati
 import Animated, { FadeInRight, FadeInLeft, FadeOut, LinearTransition, Easing } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import Ionicons from "@react-native-vector-icons/ionicons";
 
 import * as Haptics from "@/src/haptics";
@@ -11,7 +11,7 @@ import * as Haptics from "@/src/haptics";
 import { api, ProfileInput } from "@/src/api";
 import { makeStyles, useTheme, spacing, typography, radius, withAlpha } from "@/src/theme";
 import { getOrCreateUserId, setOnboarded } from "@/src/session";
-import { toggleInterest, hitsTopicLimit } from "@/src/components/category-grid";
+import { toggleInterest } from "@/src/components/category-grid";
 import { PagerDots } from "@/src/components/pager";
 import { OnboardingIntro } from "@/src/components/onboarding-intro";
 import { OnboardingProfile, ProfileDraft, MIN_NAME } from "@/src/components/onboarding-profile";
@@ -57,15 +57,11 @@ export default function Onboarding() {
   const styles = useStyles();
   const { colors } = useTheme();
   const isPremium = usePremiumFlag();
-  // Utente base: al massimo 4 argomenti attivi (ESPLORA sempre consentita).
+  // Nessun limite di argomenti: si sceglie liberamente (ESPLORA inclusa).
   const onToggleCategory = (id: string) => {
-    if (hitsTopicLimit(selected, id, isPremium)) {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
-      setNotice({ title: t.topics_limit_t, body: t.topics_limit_b, icon: "lock-closed-outline" });
-      return;
-    }
     setSelected((prev) => toggleInterest(prev, id));
   };
+  const qc = useQueryClient();
   const { data: categories, isLoading, isError, refetch, isFetching } = useQuery({
     queryKey: ["categories"],
     queryFn: api.categories,
@@ -74,7 +70,13 @@ export default function Onboarding() {
   const topics = step === 3;
   const canContinue = topics ? selected.size > 0 && modes.size > 0 : modes.size > 0;
 
+  // Le mini lezioni sono solo Premium: per l'utente base un avviso breve.
   const toggleMode = (m: Mode) => {
+    if (m === "lessons" && !isPremium) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
+      setNotice({ title: t.lessons_locked_t, body: t.lessons_locked_b, icon: "lock-closed-outline" });
+      return;
+    }
     Haptics.selectionAsync().catch(() => {});
     setModes((prev) => toggleContentMode(prev, m, topics));
   };
@@ -121,6 +123,8 @@ export default function Onboarding() {
         try { await api.setProfile(uid, prof); } catch {}
       }
       await setOnboarded();
+      // La Home legge interessi e formati dalla query utente: va aggiornata subito.
+      await qc.invalidateQueries({ queryKey: ["user", uid] });
       router.replace("/(tabs)/discover");
     } finally {
       setSaving(false);
@@ -189,7 +193,7 @@ export default function Onboarding() {
         <View style={styles.fitArea} testID="onboarding-selection-scroll">
           <Animated.View key="topics" entering={enterFrom(dir)} layout={LAYOUT} style={styles.fitArea}>
             <TopicPicker testID="onboarding-topics" categories={categories} selected={selected} modes={modes}
-              onToggleMode={toggleMode} onToggleCategory={onToggleCategory}
+              onToggleMode={toggleMode} onToggleCategory={onToggleCategory} lockedModes={isPremium ? undefined : new Set(["lessons"])}
               disabled={saving} staggerIn columns={4} fit />
           </Animated.View>
         </View>

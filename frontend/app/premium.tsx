@@ -18,9 +18,9 @@ import { useI18n } from "@/src/i18n";
 // Paywall v3 — hero con le tre copertine a ventaglio (invariato), un claim
 // unico "€2,49/mese", selettore dei tre piani in una riga (annuale in
 // evidenza, con prova gratuita), e una tabella Gratis / Premium che elenca
-// SOLO ciò che Premium sblocca davvero nell'app oggi (limiti di sessione,
-// audio, catalogo, playlist, statistiche, preferiti, accesso anticipato,
-// colori accento). CTA fissa in basso che dice cosa succede oggi (niente).
+// SOLO ciò che Premium sblocca davvero nell'app oggi (crediti e ricarica,
+// mini lezioni, cronologia, audio, catalogo, statistiche, preferiti, accesso
+// anticipato, colori accento). CTA fissa in basso che dice cosa succede oggi (niente).
 export default function Premium() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
@@ -60,11 +60,10 @@ export default function Premium() {
   const rows: Row[] = [
     { icon: "layers-outline", title: t.pw_r_sessions, sub: t.pw_r_sessions_sub, free: "4", premium: "5" },
     { icon: "flash-outline", title: t.pw_r_recharge, sub: t.pw_r_recharge_sub, free: t.pw_r_recharge_free, premium: t.pw_r_recharge_premium },
-    { icon: "compass-outline", title: t.pw_r_topics, sub: t.pw_r_topics_sub, free: "4", premium: t.pw_unlimited },
+    { icon: "school-outline", title: t.pw_r_lessons, sub: t.pw_r_lessons_sub, free: false, premium: true },
     { icon: "time-outline", title: t.pw_r_history, sub: t.pw_r_history_sub, free: t.pw_r_history_free, premium: t.pw_r_history_premium },
     { icon: "headset-outline", title: t.pw_r_audio, sub: t.pw_r_audio_sub, free: false, premium: true },
     { icon: "albums-outline", title: t.pw_r_choose, sub: t.pw_r_choose_sub, free: false, premium: true },
-    { icon: "musical-notes-outline", title: t.pw_r_playlist, sub: t.pw_r_playlist_sub, free: false, premium: true },
     { icon: "stats-chart-outline", title: t.pw_r_stats, sub: t.pw_r_stats_sub, free: false, premium: true },
     { icon: "heart-outline", title: t.pw_r_saved, free: "20", premium: t.pw_unlimited },
     { icon: "sparkles-outline", title: t.pw_r_early, free: t.pw_r_early_free, premium: t.pw_r_early_premium },

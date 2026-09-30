@@ -95,15 +95,18 @@ export function ModeCards({ modes, onToggle }: { modes: Set<StoryKind>; onToggle
   );
 }
 
-export function ModeChips({ modes, onToggle, disabled = false, idPrefix = "onboarding", style }: {
+export function ModeChips({ modes, onToggle, disabled = false, idPrefix = "onboarding", style, locked }: {
   modes: Set<StoryKind>; onToggle: (k: StoryKind) => void; disabled?: boolean; idPrefix?: string; style?: StyleProp<ViewStyle>;
+  /** Formati riservati a Premium: mai accesi, con lucchetto; il tocco resta attivo (apre il paywall). */
+  locked?: Set<StoryKind>;
 }) {
   const styles = useStyles();
   const { label } = useModeCopy();
   return (
     <View style={[styles.chipRow, style]} testID={`${idPrefix}-mode-chips`}>
       {ORDER.map((k) => {
-        const on = modes.has(k);
+        const isLocked = !!locked?.has(k);
+        const on = !isLocked && modes.has(k);
         return (
           <Pressable
             key={k}
@@ -122,6 +125,7 @@ export function ModeChips({ modes, onToggle, disabled = false, idPrefix = "onboa
             <KindIcon kind={k} size={22} lit={on} glow={false} testID={`${idPrefix}-chip-${k}-icon`} />
             <Text testID={`${idPrefix}-chip-${k}-label`} style={[styles.chipLabel, on && { color: ONB.text }]}>{label(k)}</Text>
             {on ? <Ionicons name="checkmark" size={14} color={ONB.cyan} /> : null}
+            {isLocked ? <Ionicons name="lock-closed" size={13} color={ONB.cyan} testID={`${idPrefix}-chip-${k}-lock`} /> : null}
           </Pressable>
         );
       })}

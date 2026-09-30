@@ -488,9 +488,6 @@ FREE_CAPACITY = 4
 PREMIUM_CAPACITY = 5
 FREE_RECHARGE_SECONDS = 2 * 3600
 PREMIUM_RECHARGE_SECONDS = 3600
-# Free readers keep at most this many specific categories active ("all" is
-# always allowed); premium has no cap.
-FREE_TOPICS_LIMIT = 4
 # Reading history: free readers browse the last N days only (records are kept).
 HISTORY_FREE_DAYS = 10
 # Free users can keep up to 20 bookmarks and 20 favourites; premium is unlimited.
@@ -581,11 +578,14 @@ KIND_BY_MODE = {"stories": "story", "lessons": "lesson"}
 
 
 def _kind_filter(state: Optional[dict]) -> dict:
-    """Mongo filter honouring the user's content_modes (curiosità / mini lezioni).
+    """Mongo filter for the content kinds a reader can see.
 
-    Both curiosities and mini lessons are free: the filter simply reflects the
-    modes the user picked (in onboarding or in the profile toggles). An empty
-    or missing selection defaults to showing everything."""
+    Mini lessons ("lesson") are Premium-only: free readers always get
+    curiosities ("story") regardless of their content_modes. Premium readers
+    see the modes they picked (onboarding / profile toggles); an empty or
+    missing selection defaults to everything."""
+    if not (state or {}).get("is_premium"):
+        return {"kind": "story"}
     modes = (state or {}).get("content_modes") or ["stories", "lessons"]
     kinds = [KIND_BY_MODE[m] for m in modes if m in KIND_BY_MODE]
     if not kinds or len(kinds) == len(KIND_BY_MODE):
@@ -871,12 +871,9 @@ async def user_session_stories(user_id: str, lang: Optional[str] = Query("it")):
 
 @api_router.post("/user/interests", response_model=UserState)
 async def set_interests(payload: InterestsUpdate):
-    state = await _get_or_create_state(payload.user_id)
+    await _get_or_create_state(payload.user_id)
     interests = normalize_category_ids(payload.interests)
-    specific = [i for i in interests if i != "all"]
-    if not state.get("is_premium") and len(specific) > FREE_TOPICS_LIMIT:
-        # 402 Payment Required: the client shows the topics-limit notice.
-        raise HTTPException(402, {"code": "topics_limit", "limit": FREE_TOPICS_LIMIT})
+    # Nessun limite di argomenti: ogni lettore (base o Premium) sceglie liberamente.
     await db.user_state.update_one(
         {"user_id": payload.user_id},
         {"$set": {"interests": interests}},

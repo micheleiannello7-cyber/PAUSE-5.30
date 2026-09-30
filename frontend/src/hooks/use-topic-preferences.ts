@@ -3,14 +3,14 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import * as Haptics from "@/src/haptics";
 import { api } from "@/src/api";
 import { StoryKind } from "@/src/components/kind-icon";
-import { toggleInterest, hitsTopicLimit } from "@/src/components/category-grid";
+import { toggleInterest } from "@/src/components/category-grid";
 import { toggleContentMode } from "@/src/components/onboarding-modes";
 
 type Change = { interests: string[] } | { modes: StoryKind[] };
 
 // Una sola scrittura alla volta: niente risposte fuori ordine tra formati e argomenti.
-// `onLimit` fires when a free reader tries to activate a 5th category (blocked).
-export function useTopicPreferences(userId: string | null, onLimit?: () => void) {
+// `onLocked` fires when a free reader taps the Premium-only "mini lessons" mode.
+export function useTopicPreferences(userId: string | null, onLocked?: () => void) {
   const qc = useQueryClient();
   const userQuery = useQuery({ queryKey: ["user", userId], queryFn: () => api.user(userId!), enabled: !!userId });
   const { data: user } = userQuery;
@@ -51,14 +51,15 @@ export function useTopicPreferences(userId: string | null, onLimit?: () => void)
     save.mutate(change);
   };
   const onToggleCategory = (id: string) => {
-    if (hitsTopicLimit(selected, id, !!user?.is_premium)) {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
-      onLimit?.();
-      return;
-    }
     submit({ interests: Array.from(toggleInterest(selected, id)) });
   };
+  // Le mini lezioni sono solo Premium: per l'utente base il tocco apre il paywall.
   const onToggleMode = (mode: StoryKind) => {
+    if (mode === "lessons" && !user?.is_premium) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
+      onLocked?.();
+      return;
+    }
     const next = toggleContentMode(modes, mode);
     if (next.size !== modes.size) submit({ modes: Array.from(next) });
   };

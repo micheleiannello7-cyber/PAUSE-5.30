@@ -7,7 +7,7 @@ Covers:
 - reread does not consume credit
 - token bucket recharge via credits_at manipulation (free 2h/credit, premium 1h/credit, capped)
 - premium capacity 5 (free 4), downgrade clamps
-- topics limit (402 topics_limit for free >4 specific; premium unlimited; 'all' free)
+- topics: no limit for free or premium ('all' free)
 - history endpoint: newest first, free-only 10 days + hidden_count, premium q/category/since work
 - stats ignores reread entries
 """
@@ -148,31 +148,14 @@ def test_premium_capacity_5_hourly_and_downgrade(s, uid):
 
 # ------------------------- topics limit -------------------------
 
-def test_topics_limit_free(s, uid):
-    # Get some real category ids
+def test_topics_no_limit_free(s, uid):
+    # Nessun limite di argomenti per l'utente base: 5+ categorie → 200.
     cats = s.get(f"{API}/categories").json()
-    cat_ids = [c["id"] for c in cats if c["id"] != "all"][:5]
+    cat_ids = [c["id"] for c in cats if c["id"] != "all"][:6]
     assert len(cat_ids) >= 5
-
-    # 4 ids ok
-    r = s.post(f"{API}/user/interests", json={"user_id": uid, "interests": cat_ids[:4]})
-    assert r.status_code == 200, r.text
-
-    # 5 ids → 402 topics_limit
     r = s.post(f"{API}/user/interests", json={"user_id": uid, "interests": cat_ids})
-    assert r.status_code == 402, r.text
-    detail = r.json().get("detail", {})
-    assert detail.get("code") == "topics_limit"
-
-    # 5 specific + 'all' — per spec should also be 402, but the server's
-    # normalize_category_ids collapses to ["all"] when 'all' is present,
-    # so this variant currently returns 200. Recorded as a minor deviation.
-    r = s.post(f"{API}/user/interests", json={"user_id": uid, "interests": cat_ids + ["all"]})
-    # Accept either 402 (spec) or 200 (current behavior — 'all' overrides).
-    assert r.status_code in (200, 402), r.text
-    if r.status_code == 200:
-        # Flag it for the report; the frontend must guard this on its side.
-        print("NOTE: POST /user/interests with 'all' + 5 specific returned 200; spec requested 402.")
+    assert r.status_code == 200, r.text
+    assert len(r.json()["interests"]) == len(cat_ids)
 
 
 def test_topics_limit_premium_unlimited(s, uid):

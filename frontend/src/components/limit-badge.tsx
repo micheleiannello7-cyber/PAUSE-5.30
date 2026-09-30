@@ -26,7 +26,15 @@ export function formatCountdown(totalSeconds: number): string {
   return h > 0 ? `${h}:${mm}:${ss}` : `${mm}:${ss}`;
 }
 
-export function LimitBadge({ testID = "limit-badge" }: { testID?: string }) {
+// Il countdown resta visibile per questo tempo dopo un tocco (Home).
+const TIMER_PEEK_MS = 5000;
+
+export function LimitBadge({ testID = "limit-badge", timerOnTap = false }: {
+  testID?: string;
+  /** Home: il countdown è nascosto e compare solo toccando l'indicatore; un
+      secondo tocco (col countdown visibile) apre le storie lette. */
+  timerOnTap?: boolean;
+}) {
   const router = useRouter();
   const qc = useQueryClient();
   const data = useLimitGate();
@@ -34,6 +42,9 @@ export function LimitBadge({ testID = "limit-badge" }: { testID?: string }) {
   const styles = useStyles();
   const { colors } = useTheme();
   const [now, setNow] = useState(Date.now());
+  const [peek, setPeek] = useState(false);
+  const peekTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => { if (peekTimer.current) clearTimeout(peekTimer.current); }, []);
   // La schermata resta montata sotto il lettore e durante le transizioni:
   // il countdown avanza solo quando è davvero visibile (niente lavoro sul
   // thread JS mentre qualcos'altro si muove).
@@ -65,6 +76,17 @@ export function LimitBadge({ testID = "limit-badge" }: { testID?: string }) {
 
   const accent = blocked ? colors.brandSecondary : credits === 1 ? colors.warning : colors.brand;
   const remaining = Math.floor((nextAtMs - now) / 1000);
+  const showTimer = recharging && (!timerOnTap || peek);
+  const onPress = () => {
+    if (blocked) { router.push("/pause-limit"); return; }
+    if (timerOnTap && recharging && !peek) {
+      setPeek(true);
+      if (peekTimer.current) clearTimeout(peekTimer.current);
+      peekTimer.current = setTimeout(() => setPeek(false), TIMER_PEEK_MS);
+      return;
+    }
+    router.push("/read-stories");
+  };
 
   return (
     <Pressable
@@ -72,7 +94,7 @@ export function LimitBadge({ testID = "limit-badge" }: { testID?: string }) {
       accessibilityRole="button"
       accessibilityLabel={t.credits_a11y(credits, cap)}
       hitSlop={{ top: 8, bottom: 8, left: 6, right: 6 }}
-      onPress={() => router.push(blocked ? "/pause-limit" : "/read-stories")}
+      onPress={onPress}
       style={({ pressed }) => [styles.pill, { borderColor: withAlpha(accent, blocked ? 0.55 : 0.3) }, pressed && styles.pressed]}
     >
       <View style={styles.bookWrap}>
@@ -100,7 +122,7 @@ export function LimitBadge({ testID = "limit-badge" }: { testID?: string }) {
           );
         })}
       </View>
-      {recharging ? (
+      {showTimer ? (
         <View style={styles.timer} testID={`${testID}-timer`}>
           <Ionicons name="time-outline" size={11} color={colors.onSurfaceTertiary} />
           <Text style={styles.timerText}>{formatCountdown(remaining)}</Text>

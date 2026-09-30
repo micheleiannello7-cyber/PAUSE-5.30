@@ -20,6 +20,7 @@ import { READER_MAX_W } from "@/src/components/reader-section";
 import { EndActionButton } from "@/src/components/end-action-button";
 import { StoryHero } from "@/src/components/story-hero";
 import { HighlightedTitle } from "@/src/components/highlighted-title";
+import { CategoryIcon } from "@/src/components/category-icon";
 
 type Props = {
   story: Story;
@@ -29,6 +30,8 @@ type Props = {
   onBookmark: () => void;
   onShare: () => void;
   onNext: () => void;
+  /** Torna alla Home (tasto a sinistra della storia consigliata). */
+  onHome: () => void;
   /** Prossima storia già precaricata: alimenta la card "Prossima scoperta". */
   next?: Story | null;
   bottomInset: number;
@@ -56,7 +59,7 @@ function EyebrowLine({ label, color, testID }: { label: string; color: string; t
   );
 }
 
-export function ReaderEnding({ story, liked, onLike, bookmarked, onBookmark, onShare, onNext, next, bottomInset, onSaved, scrollY, pageH, endTop }: Props) {
+export function ReaderEnding({ story, liked, onLike, bookmarked, onBookmark, onShare, onNext, onHome, next, bottomInset, onSaved, scrollY, pageH, endTop }: Props) {
   const styles = useStyles();
   const { colors } = useTheme();
   const { t } = useI18n();
@@ -84,26 +87,11 @@ export function ReaderEnding({ story, liked, onLike, bookmarked, onBookmark, onS
   });
 
   return (
-    <Animated.View style={[styles.section, reveal, { paddingBottom: bottomInset + spacing.xxl }]} testID="deep-dive-ending">
+    <Animated.View style={[styles.section, reveal, { paddingBottom: bottomInset + spacing.lg }]} testID="deep-dive-ending">
       {/* Da ricordare — sommario editoriale direttamente sullo sfondo. */}
       <EyebrowLine label={t.remember} color={colors.cyan} />
-      <Text style={styles.summary} testID="summary-card">{story.summary}</Text>
+      <Text style={styles.summary} testID="summary-card" numberOfLines={7}>{story.summary}</Text>
       <View style={[styles.line, { backgroundColor: colors.cyan, boxShadow: `0px 0px 10px ${colors.cyanGlow}` as any }]} />
-
-      {/* Tre dati della storia appena letta. */}
-      <View style={styles.pills}>
-        <View style={styles.pill}>
-          <View style={[styles.dot, { backgroundColor: story.category_color, boxShadow: `0px 0px 6px ${story.category_color}` as any }]} />
-          <Text style={styles.pillText} numberOfLines={1}>{story.category_name}</Text>
-        </View>
-        <View style={styles.pill}>
-          <Ionicons name="time-outline" size={13} color={colors.onSurfaceSecondary} />
-          <Text style={styles.pillText}>{t.timer_minutes(story.reading_time_min)}</Text>
-        </View>
-        <View style={styles.pill}>
-          <Text style={styles.pillText}>{story.chapters.length} {t.chapters}</Text>
-        </View>
-      </View>
 
       {/* Mi piace / Salva / Condividi affiancati. Mi piace e Condividi mostrano
           la conferma breve sopra il tasto; il Salva usa il banner ampio sotto. */}
@@ -139,8 +127,8 @@ export function ReaderEnding({ story, liked, onLike, bookmarked, onBookmark, onS
               style={StyleSheet.absoluteFill}
             />
             <HighlightedTitle title={next.title} highlight={next.highlight_words} style={styles.nextTitle} numberOfLines={3} />
-            <GlowOrb size={44} style={styles.nextGo}>
-              <Ionicons name="arrow-forward" size={20} color={colors.onGradient} />
+            <GlowOrb size={40} style={styles.nextGo}>
+              <Ionicons name="arrow-forward" size={19} color={colors.onGradient} />
             </GlowOrb>
           </Pressable>
           <View style={styles.chips}>
@@ -149,13 +137,26 @@ export function ReaderEnding({ story, liked, onLike, bookmarked, onBookmark, onS
               <Text style={styles.chipText}>{next.kind === "lesson" ? t.lesson_badge : t.curiosity_badge}</Text>
             </View>
             <View style={styles.chip}>
-              <Ionicons name={next.category_icon as any} size={13} color={colors.onSurfaceSecondary} />
+              <CategoryIcon categoryId={next.category_id} color={colors.onSurfaceSecondary} size={16} testID="next-category-icon" />
               <Text style={styles.chipText} numberOfLines={1}>{next.category_name}</Text>
             </View>
             <View style={styles.chip}>
               <Ionicons name="time-outline" size={13} color={colors.onSurfaceSecondary} />
               <Text style={styles.chipText}>{t.timer_minutes(next.reading_time_min)}</Text>
             </View>
+          </View>
+          {/* Due scelte: a sinistra torna alla Home, a destra leggi la storia consigliata. */}
+          <View style={styles.nextCtas}>
+            <Pressable onPress={onHome} testID="ending-home-btn" accessibilityRole="button" accessibilityLabel={t.back_home}
+              style={({ pressed }) => [styles.ctaGhost, pressed && styles.ctaPressed]}>
+              <Ionicons name="home-outline" size={18} color={colors.textWarm} />
+              <Text style={styles.ctaGhostText} numberOfLines={1}>{t.back_home}</Text>
+            </Pressable>
+            <Pressable onPress={onNext} testID="ending-read-btn" accessibilityRole="button" accessibilityLabel={t.read_story}
+              style={({ pressed }) => [styles.ctaPrimary, { backgroundColor: colors.cyan }, pressed && styles.ctaPressed]}>
+              <Text style={[styles.ctaPrimaryText, { color: colors.onGradient }]} numberOfLines={1}>{t.read_story}</Text>
+              <Ionicons name="arrow-forward" size={18} color={colors.onGradient} />
+            </Pressable>
           </View>
         </View>
       ) : (
@@ -174,17 +175,17 @@ export function ReaderEnding({ story, liked, onLike, bookmarked, onBookmark, onS
 const useStyles = makeStyles((colors) => ({
   section: {
     width: "100%", maxWidth: READER_MAX_W, alignSelf: "center",
-    paddingHorizontal: spacing.xl, paddingTop: spacing.lg, gap: spacing.md,
+    paddingHorizontal: spacing.xl, paddingTop: spacing.sm, gap: spacing.sm,
   },
   eyebrowRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
   eyebrow: { fontFamily: typography.bodyBold, fontSize: 11, letterSpacing: 2, textTransform: "uppercase" },
   eyebrowFade: { flex: 1, height: 1, borderRadius: 1 },
   summary: {
-    color: colors.textWarm, fontFamily: typography.display, fontSize: 23, lineHeight: 33, letterSpacing: -0.2,
+    color: colors.textWarm, fontFamily: typography.display, fontSize: 17.5, lineHeight: 25, letterSpacing: -0.1,
     marginTop: 2,
     textShadowColor: withAlpha(colors.surface, 0.6), textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 8,
   },
-  line: { width: 56, height: 2, borderRadius: 1, marginTop: 2 },
+  line: { width: 52, height: 2, borderRadius: 1, marginTop: 2 },
 
   pills: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm, marginTop: 2 },
   pill: {
@@ -197,21 +198,21 @@ const useStyles = makeStyles((colors) => ({
   endRow: { flexDirection: "row", gap: spacing.sm, alignSelf: "stretch", marginTop: spacing.xs },
   third: { flex: 1 },
 
-  nextWrap: { marginTop: spacing.xl, gap: spacing.md },
+  nextWrap: { marginTop: spacing.sm, gap: spacing.sm },
   nextCard: {
-    height: 200, borderRadius: radius.lg, overflow: "hidden", borderWidth: 1, justifyContent: "flex-end",
+    height: 148, borderRadius: radius.lg, overflow: "hidden", borderWidth: 1, justifyContent: "flex-end",
     backgroundColor: colors.surfaceTertiary,
     boxShadow: `0px 14px 34px ${colors.glassShadow}` as any,
   },
   nextCardPressed: { opacity: 0.92 },
   nextTitle: {
-    color: colors.onGradient, fontFamily: typography.displayBold, fontSize: 21, lineHeight: 26,
-    marginLeft: 18, marginRight: 70, marginBottom: 16,
+    color: colors.onGradient, fontFamily: typography.displayBold, fontSize: 18, lineHeight: 22,
+    marginLeft: 16, marginRight: 64, marginBottom: 12,
   },
-  nextGo: { position: "absolute", right: 14, bottom: 14 },
+  nextGo: { position: "absolute", right: 12, bottom: 12 },
 
   chips: {
-    flexDirection: "row", alignItems: "center", justifyContent: "space-around", height: 44,
+    flexDirection: "row", alignItems: "center", justifyContent: "space-around", height: 40,
     borderRadius: radius.md, backgroundColor: colors.glassBgLit, borderWidth: 1, borderColor: colors.glassBorder,
     paddingHorizontal: spacing.sm,
   },
@@ -221,4 +222,19 @@ const useStyles = makeStyles((colors) => ({
   nextBtn: { marginTop: spacing.xl, marginBottom: spacing.md },
   nextBtnInner: { justifyContent: "space-between", paddingHorizontal: spacing.lg + 4 },
   nextLabel: { flexShrink: 1, color: colors.textWarm, fontFamily: typography.bodyBold, fontSize: 16.5, letterSpacing: 0.1 },
+
+  nextCtas: { flexDirection: "row", gap: spacing.sm, marginTop: spacing.xs },
+  ctaGhost: {
+    flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8,
+    height: 48, paddingHorizontal: spacing.md, borderRadius: radius.pill, borderWidth: 1,
+    borderColor: colors.glassBorderStrong, backgroundColor: colors.glassBgLit,
+  },
+  ctaGhostText: { color: colors.textWarm, fontFamily: typography.bodyBold, fontSize: 14, letterSpacing: 0.2 },
+  ctaPrimary: {
+    flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8,
+    height: 48, borderRadius: radius.pill,
+    boxShadow: `0px 10px 24px ${colors.cyanGlow}` as any,
+  },
+  ctaPrimaryText: { fontFamily: typography.bodyBold, fontSize: 15, letterSpacing: 0.3 },
+  ctaPressed: { opacity: 0.9 },
 }));

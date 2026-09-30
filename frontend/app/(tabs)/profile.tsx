@@ -70,6 +70,8 @@ export default function Profile() {
 
   const toggleMode = async (mode: "stories" | "lessons") => {
     if (!userId || !user) return;
+    // Le mini lezioni sono solo Premium: per l'utente base il tocco apre il paywall.
+    if (mode === "lessons" && !isPremium) { router.push("/premium"); return; }
     if (modes.includes(mode) && modes.length === 1) return; // at least one stays on
     const next = modes.includes(mode) ? modes.filter((m) => m !== mode) : [...modes, mode];
     qc.setQueryData(["user", userId], (prev: typeof user) => (prev ? { ...prev, content_modes: next } : prev));
@@ -163,8 +165,8 @@ export default function Profile() {
         <ModeSwitchRow
           icon="school-outline"
           label={t.mode_lessons}
-          sub={t.mode_lessons_sub}
-          value={modes.includes("lessons")}
+          sub={isPremium ? t.mode_lessons_sub : t.premium_unlock_lessons}
+          value={isPremium && modes.includes("lessons")}
           onToggle={() => toggleMode("lessons")}
           testID="mode-switch-lessons"
           last

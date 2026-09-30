@@ -15,6 +15,7 @@ import { getHomeOffCategories, saveHomeOffCategories } from "@/src/home-focus";
 import { PauseLogo } from "@/src/components/pause-logo";
 import { GradientButton } from "@/src/components/gradient-button";
 import { HomeCategoryCarousel } from "@/src/components/home-category-carousel";
+import { HomeExploreTile } from "@/src/components/home-controls";
 import { HomeStoryDeck, CardRect, DECK_BELOW_CARD_H } from "@/src/components/home-story-deck";
 import { StoryMorph, MORPH_DURATION, MORPH_EASING } from "@/src/components/story-morph";
 import { useMorphHost } from "@/src/components/morph-host";
@@ -62,6 +63,8 @@ export default function Discover() {
     queryKey: ["user", userId], queryFn: () => api.user(userId!), enabled: !!userId,
   });
   const interests = useMemo(() => userState?.interests?.filter((i) => i !== "all") ?? [], [userState?.interests]);
+  // ESPLORA scelta negli argomenti: in Home niente fila di categorie, solo la tessera ESPLORA.
+  const exploreMode = !!userState?.interests?.includes("all");
   // Saluto personalizzato in Home: solo il primo nome/nickname, se impostato.
   const firstName = useMemo(() => {
     const n = userState?.display_name?.trim();
@@ -69,6 +72,7 @@ export default function Discover() {
   }, [userState?.display_name]);
   const { data: categories } = useQuery({ queryKey: ["categories"], queryFn: api.categories });
   const tileCats = useMemo(() => {
+    if (exploreMode) return [];
     const all = categories ?? [];
     const mine = interests.length ? all.filter((c) => interests.includes(c.id)) : all;
     const order = ["scienza", "spazio", "tecnologia", "natura", "animali", "storia", "arte", "corpo-umano"];
@@ -76,7 +80,7 @@ export default function Discover() {
       const rank = (id: string) => order.includes(id) ? order.indexOf(id) : order.length;
       return rank(a.id) - rank(b.id);
     }).slice(0, 8);
-  }, [categories, interests]);
+  }, [categories, interests, exploreMode]);
   // Tessere spente dall'utente in Home (multi-selezione, salvata sul dispositivo).
   // Di default tutte le categorie scelte sono accese; almeno una resta sempre accesa.
   const [offCats, setOffCats] = useState<string[] | null>(null);
@@ -287,7 +291,7 @@ export default function Discover() {
       <Animated.View style={[styles.header, { width }, headerAway]} testID="home-header">
         <PauseLogo prominent />
         <View style={styles.headerRight}>
-          <LimitBadge testID="home-credits" />
+          <LimitBadge testID="home-credits" timerOnTap />
           {firstName ? (
             <View style={styles.greeting} testID="home-greeting">
               <Text style={styles.greetingHi} numberOfLines={1}>{t.greeting},</Text>
@@ -318,7 +322,11 @@ export default function Discover() {
             <ResumeCard progress={resume} onPress={() => router.push(`/deep-dive/${resume.story.id}`)} />
           </View>
         ) : null}
-        {tileCats.length ? (
+        {exploreMode ? (
+          <View style={[styles.catsSection, { paddingHorizontal: gridPadding }]} testID="home-categories">
+            <HomeExploreTile width={width - gridPadding * 2} label={t.any_topic} sub={t.any_topic_sub} onPress={() => router.push("/(tabs)/explore")} />
+          </View>
+        ) : tileCats.length ? (
           <View style={styles.catsSection} testID="home-categories">
             <View style={[styles.catsHead, { paddingHorizontal: gridPadding }]}>
               <Text testID="home-categories-title" style={styles.catsTitle}>{t.your_categories}</Text>

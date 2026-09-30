@@ -5,7 +5,7 @@ import {
 import Ionicons from "@react-native-vector-icons/ionicons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Animated, {
-  useSharedValue, useAnimatedScrollHandler, useAnimatedRef, runOnJS, interpolate, Extrapolation,
+  useSharedValue, useAnimatedScrollHandler, useAnimatedRef, useAnimatedReaction, runOnJS, interpolate, Extrapolation, withTiming, Easing, scrollTo,
 } from "react-native-reanimated";
 import { useLocalSearchParams, useNavigation, useRouter } from "expo-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -48,6 +48,10 @@ const STEP_TRIGGER = 28;
 // Un capitolo più alto di una schermata occupa più schermate intere (vedi
 // ChapterSection): si avanza di una schermata alla volta, poi al capitolo seguente.
 const OVERFLOW_TOL = 24;
+// Autofocus dei capitoli: scorrimento lento e morbido (deciso, non a scatti),
+// così l'intestazione del capitolo che cresce dall'anticipazione si vede bene.
+const SCROLL_MS = 720;
+const SCROLL_EASING = Easing.inOut(Easing.cubic);
 
 // Lettura editoriale continua: un'unica pagina verticale — grande copertina,
 // titolo, tre dati, introduzione, poi i capitoli uno dopo l'altro direttamente
@@ -176,6 +180,11 @@ export default function DeepDive() {
   // Ultimo scroll programmatico (apertura su un capitolo, ripresa): solo un
   // movimento del lettore oltre quel punto conta come "gesto" per salvare.
   const autoY = useSharedValue(0);
+  // Scorrimento animato controllato da noi (durata lenta e curva morbida):
+  // un valore guida che, a ogni frame, posiziona lo ScrollView. Così l'autofocus
+  // non usa la breve animazione nativa (troppo veloce) ma la nostra, più lenta.
+  const animY = useSharedValue(0);
+  useAnimatedReaction(() => animY.value, (y) => { scrollTo(scrollRef, 0, y, false); });
   const touchedSV = useSharedValue(false);
   const markTouched = () => { touchedRef.current = true; touchedSV.value = true; };
 
@@ -197,9 +206,10 @@ export default function DeepDive() {
     if (target < 0 || !Number.isFinite(target)) return false;
     lastJumpRef.current = index;
     autoY.value = target;
-    scrollRef.current?.scrollTo({ y: target, animated });
+    if (animated) animY.value = withTiming(target, { duration: SCROLL_MS, easing: SCROLL_EASING });
+    else { animY.value = target; scrollRef.current?.scrollTo({ y: target, animated: false }); }
     return true;
-  }, [headerBottom, scrollRef, autoY]);
+  }, [headerBottom, scrollRef, autoY, animY]);
   const coverTopRef = useRef(cover.top);
   coverTopRef.current = cover.top;
   const recomputeTops = useCallback(() => {
@@ -272,7 +282,7 @@ export default function DeepDive() {
     if (Math.abs(target - y) < 1) return;
     markTouched();
     autoY.value = target;
-    scrollRef.current?.scrollTo({ y: target, animated: true });
+    animY.value = withTiming(target, { duration: SCROLL_MS, easing: SCROLL_EASING });
     if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [headerBottom, pageOverlap, scrollRef, autoY]);
@@ -320,7 +330,7 @@ export default function DeepDive() {
       if (Math.abs(acc) >= 40) {
         stepRef.current(acc > 0 ? 1 : -1);
         acc = 0;
-        lockUntil = now + 550;
+        lockUntil = now + 760;
       }
     };
     node.addEventListener("wheel", onWheel, { passive: false });
@@ -556,6 +566,7 @@ export default function DeepDive() {
               onBookmark={() => toggle("bookmark")}
               onShare={onShare}
               onNext={onNext}
+              onHome={onBackPress}
               bottomInset={insets.bottom}
               onSaved={(saved) => setSavedTrigger((p) => ({ saved, n: (p?.n ?? 0) + 1 }))}
               scrollY={scrollY}
@@ -611,5 +622,5 @@ const useStyles = makeStyles((colors: ThemeColors) => ({
   rereadText: { color: colors.onSurface, fontFamily: typography.bodyBold, fontSize: 11.5 },
   shareHidden: { position: "absolute", left: -4000, top: 0, width: SHARE_CARD_WIDTH, pointerEvents: "none" },
   listen: { alignSelf: "flex-start", minWidth: 180 },
-  ending: { paddingTop: spacing.xl },
+  ending: { paddingTop: spacing.sm },
 }));

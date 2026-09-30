@@ -1,12 +1,11 @@
-import { useState } from "react";
 import { View, Text, ScrollView, ActivityIndicator, Pressable } from "react-native";
+import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/src/api";
 import { makeStyles, spacing, typography } from "@/src/theme";
 import { useUserId } from "@/src/session";
-import { ALL_ID, FREE_TOPICS_LIMIT } from "@/src/components/category-grid";
-import { OnboardingToast, OnboardingNotice } from "@/src/components/onboarding-toast";
+import { ALL_ID } from "@/src/components/category-grid";
 import { TopicPicker, TopicsBackdrop } from "@/src/components/topic-picker";
 import { LimitBadge } from "@/src/components/limit-badge";
 import { ONB } from "@/src/components/onboarding-palette";
@@ -17,16 +16,14 @@ import { useTopicPreferences } from "@/src/hooks/use-topic-preferences";
 // Stesso picker dell'onboarding, con autosave e navigazione dei tab invariati.
 export default function Explore() {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
   const userId = useUserId();
   const { t } = useI18n();
   const styles = useStyles();
   const cats = useQuery({ queryKey: ["categories"], queryFn: api.categories });
-  const [notice, setNotice] = useState<OnboardingNotice | null>(null);
-  const { selected, modes, onToggleCategory, onToggleMode, save, userQuery } = useTopicPreferences(
-    userId, () => setNotice({ title: t.topics_limit_t, body: t.topics_limit_b, icon: "lock-closed-outline" }),
-  );
+  const { selected, modes, onToggleCategory, onToggleMode, save, userQuery } = useTopicPreferences(userId, () => router.push("/premium"));
   const count = selected.has(ALL_ID) ? cats.data?.length ?? 0 : selected.size;
-  const showMax = !userQuery.data?.is_premium && !selected.has(ALL_ID);
+  const isPremium = !!userQuery.data?.is_premium;
   const failed = cats.isError || userQuery.isError;
   const loading = !cats.data || !userQuery.data;
 
@@ -47,18 +44,17 @@ export default function Explore() {
         <ScrollView style={styles.scroll} testID="explore-scroll" showsVerticalScrollIndicator={false}
           bounces={false} contentContainerStyle={{ paddingBottom: insets.bottom + spacing.md }}>
           <TopicPicker testID="explore" modeIdPrefix="explore" categories={cats.data!} selected={selected} modes={modes} columns={4}
-            onToggleCategory={onToggleCategory} onToggleMode={onToggleMode} disabled={save.isPending}
+            onToggleCategory={onToggleCategory} onToggleMode={onToggleMode} disabled={save.isPending} lockedModes={isPremium ? undefined : new Set(["lessons"])}
             titleAccessory={<LimitBadge testID="explore-limit-badge" />}
             status={<View testID="explore-save-status" accessibilityLiveRegion="polite">
               <View style={styles.statusRow}>
-                <Text style={styles.status} testID="interests-count">{count === 0 ? t.no_interests : `${count} ${count === 1 ? t.interest_1 : t.interests}`}{showMax ? ` · ${t.topics_limit_status(FREE_TOPICS_LIMIT)}` : ""}</Text>
+                <Text style={styles.status} testID="interests-count">{count === 0 ? t.no_interests : `${count} ${count === 1 ? t.interest_1 : t.interests}`}</Text>
                 {save.isPending ? <ActivityIndicator size="small" color={ONB.cyan} testID="explore-saving" /> : null}
               </View>
               {save.isError ? <Text style={styles.saveError} testID="explore-save-error">{t.preferences_save_error}</Text> : null}
             </View>} />
         </ScrollView>
       )}
-      <OnboardingToast notice={notice} bottom={insets.bottom + spacing.xxl} onHide={() => setNotice(null)} testID="topics-limit-toast" />
     </View>
   );
 }

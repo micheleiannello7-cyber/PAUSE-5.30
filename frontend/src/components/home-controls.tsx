@@ -3,7 +3,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Category } from "@/src/api";
 import { makeStyles, radius, typography, useTheme, withAlpha, categoryTilePalette as palette } from "@/src/theme";
 import { DirectionIcon } from "./category-icon";
-import { CategoryArtwork } from "./category-artwork";
+import { CategoryArtwork, CategoryArtMark } from "./category-artwork";
 import { CategorySelectionLight, CategoryTileEdge } from "./category-tile-effects";
 
 export function HomeCategoryTile({ cat, active, onPress, size, iconUri }: {
@@ -31,6 +31,38 @@ export function HomeCategoryTile({ cat, active, onPress, size, iconUri }: {
       </View>
       <CategorySelectionLight id={`home-${cat.id}`} color={color} active={active} />
       <CategoryTileEdge color={color} rounded={radius.md} active={active} />
+    </Pressable>
+  );
+}
+
+// Home con ESPLORA attiva: al posto della fila di categorie, una sola tessera
+// larga con l'oggetto 3D di ESPLORA che "esce" dal contenitore (sporge sopra e
+// a destra del vetro). Il tocco porta agli Argomenti.
+export function HomeExploreTile({ onPress, label, sub, width }: { onPress: () => void; label: string; sub: string; width: number }) {
+  const styles = useStyles();
+  const color = palette.accents.all;
+  const art = Math.round(Math.min(150, Math.max(112, width * 0.36)));
+  return (
+    <Pressable
+      testID="home-explore-tile" onPress={onPress}
+      accessibilityRole="button" accessibilityLabel={label}
+      style={({ pressed }) => [styles.exploreWrap, { width }, pressed && styles.pressed]}
+    >
+      <View style={[styles.exploreTile, { width, borderColor: withAlpha(color, 0.5), boxShadow: `0px 8px 28px ${withAlpha(color, 0.22)}` as any }]}>
+        <LinearGradient colors={[palette.top, palette.surface]} style={StyleSheet.absoluteFill} pointerEvents="none" />
+        <View style={styles.exploreText}>
+          <Text testID="home-explore-label" style={[styles.exploreName, { color }]} numberOfLines={1}>{label}</Text>
+          <Text testID="home-explore-sub" style={styles.exploreSub} numberOfLines={2}>{sub}</Text>
+        </View>
+        <View style={styles.exploreLightWrap} pointerEvents="none">
+          <CategorySelectionLight id="home-explore" color={color} active />
+        </View>
+        <CategoryTileEdge color={color} rounded={radius.lg} active />
+      </View>
+      {/* L'oggetto 3D sporge fuori dal vetro: più grande della tessera, ancorato in alto a destra. */}
+      <View pointerEvents="none" style={[styles.exploreArt, { width: art, height: art, top: -Math.round(art * 0.34), right: -Math.round(art * 0.06) }]}>
+        <CategoryArtMark categoryId="all" color={color} size={art} plain testID="home-explore-art" />
+      </View>
     </Pressable>
   );
 }
@@ -69,4 +101,14 @@ const useStyles = makeStyles((colors) => ({
   },
   pressed: { opacity: 0.75, transform: [{ scale: 0.96 }] },
   disabled: { opacity: 0.3 },
+  exploreWrap: { alignSelf: "center", paddingTop: 34, overflow: "visible" },
+  exploreTile: {
+    height: 92, borderRadius: radius.lg, borderWidth: 1, backgroundColor: palette.surface, overflow: "hidden",
+    justifyContent: "center", paddingLeft: 18, paddingRight: 120,
+  },
+  exploreText: { gap: 3 },
+  exploreName: { fontFamily: typography.bodyBold, fontSize: 15, letterSpacing: 2.2 },
+  exploreSub: { color: palette.text, fontFamily: typography.bodyMedium, fontSize: 12, lineHeight: 16, opacity: 0.85 },
+  exploreLightWrap: { position: "absolute", left: 0, right: 0, bottom: 0, alignItems: "center" },
+  exploreArt: { position: "absolute" },
 }));

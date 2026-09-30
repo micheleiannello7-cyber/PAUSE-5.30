@@ -13,14 +13,6 @@ export const ALL_ID = "all";
 const FIT_ALL_H = 68;
 const FIT_TILE_MIN = 66;
 
-// Free readers keep at most this many specific categories active (mirrors
-// the backend FREE_TOPICS_LIMIT); "all" (ESPLORA) is always allowed.
-export const FREE_TOPICS_LIMIT = 4;
-export function hitsTopicLimit(prev: Set<string>, id: string, isPremium: boolean): boolean {
-  if (isPremium || id === ALL_ID || prev.has(id)) return false;
-  return Array.from(prev).filter((x) => x !== ALL_ID).length >= FREE_TOPICS_LIMIT;
-}
-
 // Shared toggle logic: "all" is exclusive with specific categories.
 export function toggleInterest(prev: Set<string>, id: string): Set<string> {
   const next = new Set(prev);

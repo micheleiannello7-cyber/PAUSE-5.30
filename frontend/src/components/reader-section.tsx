@@ -3,7 +3,7 @@
 // trasparente come elemento grafico, occhiello "CAPITOLO X" nel colore del
 // tema, titolo, corpo in paragrafi brevi. Nessun contenuto extra.
 import { useEffect, useState } from "react";
-import { View, Text, LayoutChangeEvent } from "react-native";
+import { View, Text } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import Animated, { Extrapolation, interpolate, SharedValue, useAnimatedStyle, useDerivedValue, useSharedValue } from "react-native-reanimated";
 
@@ -121,20 +121,24 @@ export function ChapterSection({ chapter, story, eyebrow, next, minHeight, pageO
   // Se sfora di poco, prima si prova la versione compatta (spazi e interlinea
   // ridotti): solo se non basta il capitolo prende una schermata in più.
   const [contentH, setContentH] = useState(0);
-  const [previewH, setPreviewH] = useState(0);
   const [tight, setTight] = useState(false);
   const pad = tight ? TIGHT_PAD : NORMAL_PAD;
-  const total = pad.top + contentH + (next ? SECTION_GAP + previewH : pad.bottom);
-  const measured = contentH > 0 && (!next || previewH > 0);
-  const overflow = minHeight && measured ? total - minHeight : 0;
+  // L'anticipazione del capitolo seguente è un livello che "galleggia" in fondo
+  // (l'intestazione del prossimo capitolo, ridotta): NON occupa spazio nel
+  // layout. Così la sezione è alta quanto serve al SOLO testo: un capitolo il
+  // cui testo sta in una schermata avanza sempre con un unico gesto, senza una
+  // seconda schermata mezza vuota.
+  const readH = pad.top + contentH + pad.bottom;
+  const measured = contentH > 0;
+  const overflow = minHeight && measured ? readH - minHeight : 0;
   useEffect(() => { setTight(false); }, [minHeight]);
   useEffect(() => {
     if (!tight && overflow > 0 && overflow <= TIGHT_MAX_OVERFLOW) setTight(true);
   }, [tight, overflow]);
-  const pages = minHeight && measured ? Math.max(1, Math.ceil((total - pageOverlap) / (minHeight - pageOverlap))) : 1;
+  const pages = minHeight && measured ? Math.max(1, Math.ceil((readH - pageOverlap) / (minHeight - pageOverlap))) : 1;
   const sectionH = minHeight ? pages * minHeight - (pages - 1) * pageOverlap : undefined;
   return (
-    <View style={[styles.section, { paddingTop: pad.top, paddingBottom: next ? 0 : pad.bottom }, sectionH ? { minHeight: sectionH } : null]} testID={`deep-dive-chapter-${chapter.number}`}>
+    <View style={[styles.section, { paddingTop: pad.top, paddingBottom: pad.bottom }, sectionH ? { minHeight: sectionH } : null]} testID={`deep-dive-chapter-${chapter.number}`}>
       <View style={styles.content} onLayout={(e) => { const h = Math.ceil(e.nativeEvent.layout.height); if (h !== contentH) setContentH(h); }}>
       <ChapterHeading chapter={chapter} story={story} eyebrow={eyebrow} tint={tint} tight={tight} padTop={pad.top} index={index} track={track} />
       <View style={[styles.body, tight && styles.bodyTight]}>
@@ -143,9 +147,7 @@ export function ChapterSection({ chapter, story, eyebrow, next, minHeight, pageO
         ))}
       </View>
       </View>
-      {next ? (
-        <TeaserSpace next={next} story={story} onHeight={(h) => { if (h !== previewH) setPreviewH(h); }} />
-      ) : null}
+      {next ? <TeaserSpace next={next} /> : null}
     </View>
   );
 }
@@ -210,21 +212,14 @@ function ChapterHeading({ chapter, story, eyebrow, tint, tight, padTop, index, t
   );
 }
 
-// Spazio in fondo alla schermata dove si posa l'anticipazione del capitolo
-// seguente: alto quanto la sua intestazione ridotta (il titolo si misura qui,
-// invisibile, con lo stesso corpo e la stessa larghezza) più il margine dal fondo.
-function TeaserSpace({ next, story, onHeight }: { next: Chapter; story: Story; onHeight: (h: number) => void }) {
+// Segnaposto in fondo alla sezione: l'anticipazione vera (l'intestazione del
+// capitolo seguente, ridotta) è disegnata dal capitolo dopo e "galleggia" qui
+// sopra grazie alla sua traslazione. Questo marcatore non occupa layout.
+function TeaserSpace({ next }: { next: Chapter }) {
   const styles = useStyles();
-  const [titleH, setTitleH] = useState(0);
-  const onTitleLayout = (e: LayoutChangeEvent) => { const h = Math.ceil(e.nativeEvent.layout.height); if (h !== titleH) setTitleH(h); };
   return (
-    <View style={[styles.teaserSpace, titleH > 0 ? { height: Math.ceil(teaserHeight(titleH)) + LAND_PAD } : null]} testID={`reader-chapter-preview-${next.number}`}
-      onLayout={(e) => onHeight(Math.ceil(e.nativeEvent.layout.height))} pointerEvents="none"
-      accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-      <View style={styles.teaserMeasure} onLayout={onTitleLayout}>
-        <HighlightedTitle title={stripStepPrefix(next.title)} highlight={story.highlight_words} style={styles.title} />
-      </View>
-    </View>
+    <View style={styles.teaserSpace} testID={`reader-chapter-preview-${next.number}`} pointerEvents="none"
+      accessibilityElementsHidden importantForAccessibility="no-hide-descendants" />
   );
 }
 
@@ -251,8 +246,8 @@ const useStyles = makeStyles((colors) => ({
   },
   content: { gap: spacing.sm + 2 },
   body: { gap: spacing.md + 2, marginTop: spacing.sm },
-  // Spazio dell'anticipazione: sul fondo della schermata (prima della misura, un titolo di una riga).
-  teaserSpace: { marginTop: "auto", height: Math.ceil(teaserHeight(37)) + LAND_PAD },
+  // Segnaposto dell'anticipazione: assoluto in fondo, non contribuisce all'altezza.
+  teaserSpace: { position: "absolute", left: 0, right: 0, bottom: 0, height: 0 },
   teaserMeasure: { position: "absolute", left: 0, right: 0, top: 0, opacity: 0 },
   paragraph: { color: colors.textWarmSecondary, fontFamily: typography.body, fontSize: 17.5, lineHeight: 31, letterSpacing: 0.1 },
   // Versione compatta (capitolo che sfora di poco la schermata): stessi

@@ -86,8 +86,8 @@ export function EndActionButton({
         style={styles.press}
       >
         <Animated.View style={[styles.btn, surface]}>
-          <Ionicons name={icon} size={20} color={active ? accent : colors.textWarm} />
-          <Text style={[styles.label, active && { color: accent }]} numberOfLines={1}>{label}</Text>
+          <Ionicons name={icon} size={18} color={active ? accent : colors.textWarm} />
+          <Text style={[styles.label, active && { color: accent }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>{label}</Text>
         </Animated.View>
       </Pressable>
     </Animated.View>
@@ -98,11 +98,11 @@ const useStyles = makeStyles((colors) => ({
   wrap: { position: "relative" },
   press: { alignSelf: "stretch" },
   btn: {
-    flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8,
-    minHeight: 50, paddingHorizontal: spacing.md, borderRadius: radius.pill, borderWidth: 1,
+    flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6,
+    minHeight: 50, paddingHorizontal: spacing.sm, borderRadius: radius.pill, borderWidth: 1,
     boxShadow: `0px 6px 16px ${colors.glassShadow}` as any,
   },
-  label: { flexShrink: 1, color: colors.textWarm, fontFamily: typography.bodyBold, fontSize: 15, letterSpacing: 0.2 },
+  label: { flexShrink: 1, color: colors.textWarm, fontFamily: typography.bodyBold, fontSize: 13.5, letterSpacing: 0 },
   toast: {
     position: "absolute", left: 0, right: 0, top: -40, alignItems: "center", alignSelf: "center", zIndex: 5,
     marginHorizontal: spacing.sm, paddingHorizontal: 12, minHeight: 30, justifyContent: "center",
