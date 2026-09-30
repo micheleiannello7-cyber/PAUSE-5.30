@@ -29,6 +29,7 @@ import { StoryAudioProvider, AudioSheet, AudioMiniBadge, IntroListenButton } fro
 import { ReaderHeader, READER_HEADER_H } from "@/src/components/reader-header";
 import { ChapterSection, ChapterTrack } from "@/src/components/reader-section";
 import { ReaderEnding } from "@/src/components/reader-ending";
+import { SaveConfirmToast } from "@/src/components/save-confirm-toast";
 import { Screen } from "@/src/components/screen";
 import { StoryShareCard, SHARE_CARD_WIDTH } from "@/src/components/story-share-card";
 import { useMorphHost } from "@/src/components/morph-host";
@@ -115,7 +116,18 @@ export default function DeepDive() {
     queryFn: () => api.user(userId!),
     enabled: !!userId,
   });
+  // Prossima storia precaricata: alimenta la card "Prossima scoperta" nella
+  // schermata finale e viene riusata da onNext, così l'anteprima coincide con
+  // ciò che si apre davvero.
+  const { data: nextStory } = useQuery({
+    queryKey: ["nextStory", id, userId],
+    queryFn: () => api.nextStory(id!, userId ?? undefined),
+    enabled: !!story && chaptersReady,
+    staleTime: 5 * 60 * 1000,
+  });
   const { toggle } = useStoryActions(userId, id);
+  // Banner ampio di conferma del salvataggio nella schermata finale.
+  const [savedTrigger, setSavedTrigger] = useState<{ saved: boolean; n: number } | null>(null);
   const isPremium = !!user?.is_premium;
   // Rilettura: fissata al primo caricamento dell'utente (non cambia quando la
   // storia viene segnata come letta durante questa stessa lettura).
@@ -452,7 +464,7 @@ export default function DeepDive() {
           return;
         }
       }
-      const next = await api.nextStory(story.id, userId ?? undefined);
+      const next = nextStory ?? (await api.nextStory(story.id, userId ?? undefined));
       router.replace(`/deep-dive/${next.id}`);
     } catch {}
   };
@@ -537,6 +549,7 @@ export default function DeepDive() {
           {chaptersReady ? <View onLayout={(e) => onSectionLayout(chapterCount, e)} style={[styles.ending, { minHeight: pageH - headerBottom }]} testID="deep-dive-page-end">
             <ReaderEnding
               story={story}
+              next={nextStory}
               liked={liked}
               onLike={() => toggle("like")}
               bookmarked={bookmarked}
@@ -544,6 +557,10 @@ export default function DeepDive() {
               onShare={onShare}
               onNext={onNext}
               bottomInset={insets.bottom}
+              onSaved={(saved) => setSavedTrigger((p) => ({ saved, n: (p?.n ?? 0) + 1 }))}
+              scrollY={scrollY}
+              pageH={pageHSV}
+              endTop={endTopSV}
             />
           </View> : null}
         </Animated.ScrollView>
@@ -569,6 +586,8 @@ export default function DeepDive() {
       </SwipeBack>
       {/* Cornice luminosa nel colore del tema, lungo i bordi dello schermo. */}
       <ReaderFrame />
+      {/* Conferma ampia del salvataggio: banner fisso, centrato in basso. */}
+      <SaveConfirmToast trigger={savedTrigger} bottomInset={insets.bottom} />
       {/* Off-screen share card, captured as PNG on demand. */}
       {chaptersReady ? (
         <View style={styles.shareHidden}>

@@ -105,6 +105,7 @@ const it = {
   // saved
   saved: "Salvati",
   toast_saved: "Salvato", toast_unsaved: "Rimosso dai salvati", toast_liked: "Ti piace", toast_unliked: "Rimosso dai preferiti",
+  saved_confirm: "Aggiunto ai salvati", unsaved_confirm: "Rimosso dai salvati",
   all_categories: "Tutte",
   saved_sub_n: "storie da riprendere", saved_sub_1: "storia da riprendere", saved_sub_empty: "Le curiosità che vuoi conservare",
   saved_remove: "Rimuovi dai salvati", saved_search_ph: "Cerca tra i salvati…", saved_search_empty: "Nessuna storia salvata corrisponde alla ricerca.", saved_resume: "RIPRENDI DA DOVE ERI",
@@ -119,7 +120,7 @@ const it = {
   // story / deep dive
   back: "Indietro", chapters: "capitoli", catch_curiosity: "ACCHIAPPA CURIOSITÀ",
   deep_dive: "Approfondisci", i_like: "Mi piace", share: "Condividi",
-  chapter: "CAPITOLO", remember: "DA RICORDARE", next_story: "Prosegui con un'altra notizia",
+  chapter: "CAPITOLO", remember: "DA RICORDARE", next_story: "Prosegui con un'altra notizia", next_discovery: "Prossima scoperta",
   of: "DI", deep_intro: "INTRODUZIONE", deep_start: "Vai alla lettura", deep_scroll_hint: "Scorri per iniziare",
   info_kind: "Tipo di storia", info_category: "Categoria", info_time: "Tempo di lettura",
   deep_or: "oppure", deep_listen_ai: "Ascolta, raccontata dall'AI",
@@ -430,6 +431,7 @@ const en: typeof it = {
   read_label: "Read",
   saved: "Saved",
   toast_saved: "Saved", toast_unsaved: "Removed from saved", toast_liked: "Liked", toast_unliked: "Removed from likes",
+  saved_confirm: "Added to saved", unsaved_confirm: "Removed from saved",
   all_categories: "All",
   saved_sub_n: "stories to pick up again", saved_sub_1: "story to pick up again", saved_sub_empty: "The curiosities you want to keep",
   saved_remove: "Remove from saved", saved_search_ph: "Search your saved…", saved_search_empty: "No saved story matches your search.", saved_resume: "PICK UP WHERE YOU LEFT",
@@ -443,7 +445,7 @@ const en: typeof it = {
   saved_free_quota: (n: number, max: number) => `${n}/${max} free`,
   back: "Back", chapters: "chapters", catch_curiosity: "CURIOSITY TEASER",
   deep_dive: "Dive deeper", i_like: "Like", share: "Share",
-  chapter: "CHAPTER", remember: "REMEMBER THIS", next_story: "Continue with another story",
+  chapter: "CHAPTER", remember: "REMEMBER THIS", next_story: "Continue with another story", next_discovery: "Next discovery",
   of: "OF", deep_intro: "INTRODUCTION", deep_start: "Start reading", deep_scroll_hint: "Scroll to begin",
   info_kind: "Story type", info_category: "Category", info_time: "Reading time",
   deep_or: "or", deep_listen_ai: "Listen, narrated by AI",

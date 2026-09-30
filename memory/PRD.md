@@ -6,6 +6,37 @@
 > di contenuti/asset, niente AI a runtime, identità visiva dark-navy/cyan/glass).
 > Lingua dell'utente: **italiano**.
 
+## Finale storia — dissolvenza d'ingresso + conferma ampia del Salva (30 settembre 2026)
+- Richiesta utente: (1) far comparire il riquadro finale con una dissolvenza morbida arrivando
+  in fondo; (2) conferma "Aggiunto ai salvati" più visibile toccando Salva nel finale.
+- Dissolvenza: `reader-ending.tsx` riceve `scrollY/pageH/endTop` (gli stessi shared value del
+  `ReaderEndingBackdrop`) e avvolge il contenuto in `Animated.View` con opacity 0→1 + translateY
+  26→0 interpolati su `[endTop - pageH*0.5, endTop - pageH*0.12]`: il blocco "Da ricordare" sale e
+  compare appena prima di toccare il fondo. Fallback a opacità piena se i valori non ci sono.
+- Conferma Salva: nuovo `save-confirm-toast.tsx`, banner FISSO rispetto allo schermo montato nel
+  root del deep-dive (fuori dallo scroll), centrato in basso (`bottom: insets.bottom + xxl`), disco
+  cyan con segnalibro + testo. `ReaderEnding` non usa più il mini-toast sul tasto Salva: `handleBookmark`
+  dà l'haptic e chiama `onSaved(willSave)`; il deep-dive incrementa un trigger `{saved, n}` così anche
+  salvataggi ripetuti rilanciano l'animazione. testID `save-confirm`. Like/Condividi invariati.
+- Nuove chiavi i18n `saved_confirm` / `unsaved_confirm` (IT "Aggiunto ai salvati" / "Rimosso dai salvati").
+- Verifica visiva 390×844: banner "Aggiunto ai salvati" ben visibile in basso, finale con dissolvenza.
+
+## Schermata finale storia — variante "Prossima scoperta" (mock B) integrata (30 settembre 2026)
+- Richiesta utente: integrare la modifica della schermata finale della storia lasciata pronta
+  dall'agente precedente. Trovati i mockup `frontend/public/mock/ending-{a,b,c}.html`; l'allegato
+  visivo dell'utente corrisponde a **ending-b.html** → integrata quella variante.
+- `src/components/reader-ending.tsx` rifatto secondo mock B (nessuna GlassSurface/SectionDivider):
+  occhiello "DA RICORDARE" con codina luminosa, sommario editoriale (Sora) sullo sfondo, linea cyan,
+  3 pill (categoria · minuti · N capitoli), Mi piace/Salva/Condividi affiancati (riuso `EndActionButton`,
+  testID invariati like-button/bookmark-button/share-story) e card **Prossima scoperta** con copertina
+  (`StoryHero`), titolo `HighlightedTitle`, freccia `GlowOrb` (testID next-story) + chips tipo/categoria/min.
+  Fallback al vecchio pulsante testuale finché la prossima storia non è precaricata.
+- `app/deep-dive/[id].tsx`: prefetch `useQuery(["nextStory", id, userId])`, prop `next={nextStory}`
+  passata a `ReaderEnding`; `onNext` riusa la storia precaricata (anteprima == storia che si apre),
+  controllo crediti/limite invariato.
+- Nuova chiave i18n `next_discovery` (IT "Prossima scoperta" / EN "Next discovery").
+- Verifica visiva 390×844: finale renderizza come da mock B con dati reali della prossima storia.
+
 ## Ripristino ambiente da GitHub PAUSE-5.29 (30 settembre 2026 — sessione corrente)
 - Richiesta utente: «https://github.com/micheleiannello7-cyber/PAUSE-5.29.git questa è la mia app, Estrapolala e dammi la preview pronta completa grazie».
 - Repo clonato e copiato in `/app` preservando i file di piattaforma (`.git`, `.emergent`,
